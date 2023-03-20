@@ -39,7 +39,12 @@ namespace PackUpNtBack
             _config = JsonConvert.DeserializeObject<AppConfig>(await File.ReadAllTextAsync("data/config.json"))!;
 
             github = new GitHubClient(new ProductHeaderValue("PackUpNt"));
-            github.Credentials = new Credentials(_config.GithubSecret);
+            Console.WriteLine(GetOauthLoginUrl());
+            var request = new OauthTokenRequest(_config.GithubClient, _config.GithubSecret, "4094cb46b3a94e8d8199");
+            var token = await github.Oauth.CreateAccessToken(request);
+            github.Credentials = new Credentials(token.AccessToken);
+
+
 
             //initialize the Supabase Client
             var sbUrl = _config.SupabaseUrl;
@@ -67,22 +72,42 @@ namespace PackUpNtBack
             {
                 var user = await github.User.Get(entry.username);
                 var repos = await github.Repository.GetAllForUser(entry.username);
+                if (entry.username == "FraudBatman")
+                {
+                    Console.WriteLine("wtfu, debugger!");
+                }
                 foreach (var repo in repos)
                 {
                     System.Threading.Thread.Sleep(100);
                     var contents = await github.Repository.Content.GetAllContents(repo.Id);
                     foreach (var content in contents)
                     {
-                        if (content.Content == null) continue;
-                        var match = Regex.Match(content.Content, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
+                        if (content.Name == null) continue;
+                        var match = Regex.Match(content.Name, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
                         if (match.Success)
                         {
-                            Console.WriteLine($"{repo} is a csproj repo");
+                            Console.WriteLine($"{repo.Name} is a csproj repo");
+                        }
+                        match = Regex.Match(content.Name, @"package.json", RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
                         }
                     }
                 }
             }
 
+        }
+
+        private string GetOauthLoginUrl()
+        {
+            // 1. Redirect users to request GitHub access
+            var request = new OauthLoginRequest(_config.GithubClient)
+            {
+                Scopes = { "user", "notifications" },
+            };
+            var oauthLoginUrl = github.Oauth.GetGitHubLoginUrl(request);
+            return oauthLoginUrl.ToString();
         }
     }
 }

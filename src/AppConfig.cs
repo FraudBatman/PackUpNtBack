@@ -5,6 +5,7 @@ namespace PackUpNtBack
     public class AppConfig
     {
         public string ApplicationName = "PackUpNt";
+        public string GithubClient = "Github Client ID";
         public string GithubSecret = "Put your Github";
         public string SupabaseUrl = "";
         public string SupabaseKey = "";
