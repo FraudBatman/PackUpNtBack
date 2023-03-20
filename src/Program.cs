@@ -40,7 +40,10 @@ namespace PackUpNtBack
 
             github = new GitHubClient(new ProductHeaderValue("PackUpNt"));
             Console.WriteLine(GetOauthLoginUrl());
-            var request = new OauthTokenRequest(_config.GithubClient, _config.GithubSecret, "4094cb46b3a94e8d8199");
+            Console.Write("Go to the link and copy the code: ");
+            var code = Console.ReadLine();
+            Console.Clear();
+            var request = new OauthTokenRequest(_config.GithubClient, _config.GithubSecret, code);
             var token = await github.Oauth.CreateAccessToken(request);
             github.Credentials = new Credentials(token.AccessToken);
 
@@ -57,25 +60,12 @@ namespace PackUpNtBack
             //supabase testing
             var sbUsers = await supabase.Rpc("get_users_names", null);
             GetUsersNamesEntry[] sbUserEntries = JsonConvert.DeserializeObject<GetUsersNamesEntry[]>(sbUsers.Content);
-            foreach (var entry in sbUserEntries)
-            {
-                //github testing
-                var user = await github.User.Get(entry.username);
-                Console.WriteLine("{0} has {1} public repositories - go check out their profile at {2}",
-                    user.Name,
-                    user.PublicRepos,
-                    user.Url);
-            }
-            // var repo = await github.Repository.Content.GetAllContents("FraudBatman", "PackUpNtBack");
 
             foreach (var entry in sbUserEntries)
             {
                 var user = await github.User.Get(entry.username);
                 var repos = await github.Repository.GetAllForUser(entry.username);
-                if (entry.username == "FraudBatman")
-                {
-                    Console.WriteLine("wtfu, debugger!");
-                }
+                Console.WriteLine($"Checking {user.Name} for valid repos...");
                 foreach (var repo in repos)
                 {
                     System.Threading.Thread.Sleep(100);
