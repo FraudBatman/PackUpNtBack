@@ -4,8 +4,10 @@ using Postgrest.Models;
 namespace PackUpNtBack.Models
 {
     [Table("package_info")]
-    public class Package
+    public class Package : BaseModel
     {
+        [Column("response_id")]
+        public ulong? ResponseId { get; set; }
         /// <summary>
         /// The name of the package
         /// </summary>
@@ -27,6 +29,17 @@ namespace PackUpNtBack.Models
         [Column("source_url")]
         string? Source { get; set; }
 
+        public Package(string name, string repoVersion, string currentVersion, string source = null)
+        {
+            Name = name;
+            RepoVersion = repoVersion;
+            CurrentVersion = currentVersion;
+            Source = source;
+        }
+        public Package()
+        {
+
+        }
     }
 
 }

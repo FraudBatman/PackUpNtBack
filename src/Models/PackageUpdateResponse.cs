@@ -3,16 +3,11 @@ using Postgrest.Models;
 
 namespace PackUpNtBack.Models
 {
-    [Table("backend_response")]
-    public class PackageUpdateResponse
+    [Table("backend_reponse")]
+    public class PackageUpdateResponse : BaseModel
     {
         [PrimaryKey("id")]
-        public ulong ID { get; set; }
-
-        /// <summary>
-        /// The origianl name of the repository
-        /// </summary>
-        public string RepoName { get; set; }
+        public ulong? ID { get; set; }
 
         [Column("repo_id")]
         public ulong? RepoId { get; set; }
@@ -23,11 +18,6 @@ namespace PackUpNtBack.Models
 
         [Column("repo_type")]
         public string RepoType { get; set; }
-
-        /// <summary>
-        /// All packages that have been tested to be out-of-date. Doesn't account for user settings.
-        /// </summary>
-        public Package[] Packages { get; set; }
     }
 
 

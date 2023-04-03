@@ -1,9 +1,10 @@
 using Postgrest.Attributes;
+using Postgrest.Models;
 
 namespace PackUpNtBack.Models
 {
     [Table("repo_settings")]
-    public class RepoSettings
+    public class RepoSettings : BaseModel
     {
         [Column("repo_id")]
         ulong RepoId { get; set; }

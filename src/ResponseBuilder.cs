@@ -7,7 +7,10 @@ namespace PackUpNtBack
     public class ResponseBuilder
     {
         ulong repoId;
-        PackageUpdateResponse? response;
+        public string repoName;
+        public PackageUpdateResponse? response;
+        public Package[] packages;
+        public bool valid = false;
 
         public ResponseBuilder(long repoID)
         {
@@ -20,7 +23,7 @@ namespace PackUpNtBack
             response.RepoId = repoId;
 
             var repo = await Program.github.Repository.Get(Int64.Parse(repoId.ToString()));
-            response.RepoName = repo.Name;
+            repoName = repo.Name;
 
             var contents = await Program.github.Repository.Content.GetAllContents(repo.Id);
             foreach (var content in contents)
@@ -30,6 +33,7 @@ namespace PackUpNtBack
                 if (match.Success)
                 {
                     Console.WriteLine($"{repo.Name} is a csproj repo");
+                    response.RepoType = ".NET";
                     var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
                     await checkDotnet(projectFile[0]);
                 }
@@ -37,11 +41,53 @@ namespace PackUpNtBack
                 if (match.Success)
                 {
                     Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
+                    response.RepoType = "NPM";
                     var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
+                    await checkNPM(projectFile[0]);
                 }
             }
 
             return response;
+        }
+
+        public async Task dotnetTest(string fileName)
+        {
+            var content = File.ReadAllText(fileName);
+            repoName = "TEST-" + fileName;
+            response = new PackageUpdateResponse();
+
+            //create temp directory
+            Directory.CreateDirectory("temp");
+            File.WriteAllText("temp/" + fileName, content);
+
+            //dotnet restore for updates
+            var restorePsi = new ProcessStartInfo();
+            restorePsi.FileName = "dotnet";
+            restorePsi.Arguments = "restore";
+            restorePsi.WorkingDirectory = "temp";
+            var restoreProc = Process.Start(restorePsi);
+            restoreProc.WaitForExit();
+
+            //get the update file
+            var psi = new ProcessStartInfo();
+            psi.FileName = "dotnet";
+            psi.Arguments = $"list {fileName} package --outdated";
+            psi.UseShellExecute = false;
+            psi.WorkingDirectory = "temp";
+            psi.RedirectStandardOutput = true;
+            var proc = Process.Start(psi);
+            var reader = proc.StandardOutput;
+            string result = reader.ReadToEnd();
+            //File.WriteAllText(projectFile.Name + ".txt", result); //for checking output
+
+            //delete temp
+            recursiveDelete(new DirectoryInfo("temp"));
+
+            packages = getAllMatches(result, @"^\s*>\s*(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)$", 1, 3, 4);
+            if (packages.Count() > 0)
+            {
+                valid = true;
+            }
         }
 
         private async Task checkDotnet(Octokit.RepositoryContent projectFile)
@@ -73,6 +119,38 @@ namespace PackUpNtBack
             //delete temp
             recursiveDelete(new DirectoryInfo("temp"));
 
+            packages = getAllMatches(result, @"^\s*>\s*(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)$", 1, 3, 4);
+            if (packages.Count() > 0)
+            {
+                valid = true;
+            }
+        }
+
+        private async Task checkNPM(Octokit.RepositoryContent projectFile)
+        {
+            //create temp directory
+            Directory.CreateDirectory("temp");
+            File.WriteAllText("temp/" + projectFile.Name, projectFile.Content);
+
+            //get the update file
+            var psi = new ProcessStartInfo();
+            psi.FileName = "npm";
+            psi.Arguments = "outdated";
+            psi.UseShellExecute = false;
+            psi.WorkingDirectory = "temp";
+            psi.RedirectStandardOutput = true;
+            var proc = Process.Start(psi);
+            var reader = proc.StandardOutput;
+            string result = reader.ReadToEnd();
+
+            //delete temp
+            recursiveDelete(new DirectoryInfo("temp"));
+
+            packages = getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
+            if (packages.Count() > 0)
+            {
+                valid = true;
+            }
         }
 
         private static void recursiveDelete(DirectoryInfo baseDir)
@@ -85,6 +163,25 @@ namespace PackUpNtBack
                 recursiveDelete(dir);
             }
             baseDir.Delete(true);
+        }
+
+        public static Package[] getAllMatches(string input, string regexMatch, int nameGr, int repoGr, int currGr)
+        {
+            var lines = input.Split('\n');
+            var returnValue = new List<Package>();
+
+            foreach (var line in lines)
+            {
+                var match = Regex.Match(line, regexMatch);
+                if (match.Success)
+                {
+                    returnValue.Add(new Package(match.Groups[nameGr].Value,
+                                                match.Groups[repoGr].Value,
+                                                match.Groups[currGr].Value));
+                }
+            }
+
+            return returnValue.ToArray();
         }
     }
 }

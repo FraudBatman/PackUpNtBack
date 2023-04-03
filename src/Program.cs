@@ -15,6 +15,43 @@ namespace PackUpNtBack
 
         public async Task MainAsync(string[] args)
         {
+            //bypassing a lot of stuff for testing
+
+            // var sr = new StreamReader("PackUpNtFront.txt");
+            // var result = sr.ReadToEnd();
+            // var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
+
+            //initialize the Supabase Client
+            var testsbUrl = _config.SupabaseUrl;
+            var testsbKey = _config.SupabaseKey;
+            supabase = new Supabase.Client(testsbUrl, testsbKey, new Supabase.SupabaseOptions { AutoConnectRealtime = true, AutoRefreshToken = true });
+            await supabase.InitializeAsync();
+
+
+
+            // //supabase testing
+            var testsbResponses = supabase.From<PackageUpdateResponse>();
+            var testsbPackages = supabase.From<PackUpNtBack.Models.Package>();
+
+            var testBuilder = new ResponseBuilder(987654321);
+            await testBuilder.dotnetTest("DiscordQuiplash.csproj.txt");
+            if (testBuilder.valid)
+            {
+                await testsbResponses.Insert(testBuilder.response);
+                var responsesResponse = await testsbResponses.Get(); //easily top 5 worst variable names i've made
+                var responsesResponseResponseId = responsesResponse.Models.Last().ID; //and that's top 2!
+
+                foreach (var package in testBuilder.packages)
+                {
+                    package.ResponseId = responsesResponseResponseId;
+                    await testsbPackages.Insert(package);
+                }
+            }
+
+            return;
+            //end of bypass
+
+
             Console.Clear();
 
             //FILE CREATION
@@ -43,6 +80,7 @@ namespace PackUpNtBack
             Console.Write("Go to the link and copy the code: ");
             var code = Console.ReadLine();
             Console.Clear();
+
             var request = new OauthTokenRequest(_config.GithubClient, _config.GithubSecret, code);
             var token = await github.Oauth.CreateAccessToken(request);
             github.Credentials = new Credentials(token.AccessToken);
@@ -60,6 +98,9 @@ namespace PackUpNtBack
             // //supabase testing
             var sbUsers = await supabase.Rpc("get_users_names", null);
             GetUsersNamesEntry[] sbUserEntries = JsonConvert.DeserializeObject<GetUsersNamesEntry[]>(sbUsers.Content);
+            var sbResponses = supabase.From<PackageUpdateResponse>();
+            var sbPackages = supabase.From<PackUpNtBack.Models.Package>();
+
 
             foreach (var entry in sbUserEntries)
             {
@@ -70,6 +111,18 @@ namespace PackUpNtBack
                 {
                     var builder = new ResponseBuilder(repo.Id);
                     await builder.generateResponse();
+                    if (builder.valid)
+                    {
+                        await sbResponses.Insert(builder.response);
+                        var responsesResponse = await sbResponses.Get(); //easily top 5 worst variable names i've made
+                        var responsesResponseResponseId = responsesResponse.Models.Last().ID; //and that's top 2!
+
+                        foreach (var package in builder.packages)
+                        {
+                            package.ResponseId = responsesResponseResponseId;
+                            await sbPackages.Insert(package);
+                        }
+                    }
                 }
             }
         }
