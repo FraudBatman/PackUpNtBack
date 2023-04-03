@@ -15,44 +15,16 @@ namespace PackUpNtBack
 
         public async Task MainAsync(string[] args)
         {
-            //bypassing a lot of stuff for testing
+            Console.Clear();
+            // /*bypassing a lot of stuff for testing
 
-            // var sr = new StreamReader("PackUpNtFront.txt");
-            // var result = sr.ReadToEnd();
-            // var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
-
-            //initialize the Supabase Client
-            var testsbUrl = _config.SupabaseUrl;
-            var testsbKey = _config.SupabaseKey;
-            supabase = new Supabase.Client(testsbUrl, testsbKey, new Supabase.SupabaseOptions { AutoConnectRealtime = true, AutoRefreshToken = true });
-            await supabase.InitializeAsync();
-
-
-
-            // //supabase testing
-            var testsbResponses = supabase.From<PackageUpdateResponse>();
-            var testsbPackages = supabase.From<PackUpNtBack.Models.Package>();
-
-            var testBuilder = new ResponseBuilder(987654321);
-            await testBuilder.dotnetTest("DiscordQuiplash.csproj.txt");
-            if (testBuilder.valid)
-            {
-                await testsbResponses.Insert(testBuilder.response);
-                var responsesResponse = await testsbResponses.Get(); //easily top 5 worst variable names i've made
-                var responsesResponseResponseId = responsesResponse.Models.Last().ID; //and that's top 2!
-
-                foreach (var package in testBuilder.packages)
-                {
-                    package.ResponseId = responsesResponseResponseId;
-                    await testsbPackages.Insert(package);
-                }
-            }
+            var sr = new StreamReader("PackUpNtFront.txt");
+            var result = sr.ReadToEnd();
+            var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
 
             return;
             //end of bypass
-
-
-            Console.Clear();
+            // */
 
             //FILE CREATION
 
@@ -100,7 +72,13 @@ namespace PackUpNtBack
             GetUsersNamesEntry[] sbUserEntries = JsonConvert.DeserializeObject<GetUsersNamesEntry[]>(sbUsers.Content);
             var sbResponses = supabase.From<PackageUpdateResponse>();
             var sbPackages = supabase.From<PackUpNtBack.Models.Package>();
+            var responsesResponse = await sbResponses.Get(); //easily top 5 worst variable names i've made
+            ResponseBuilder.lastResponseId = responsesResponse.Models.Last().ID++;
 
+            if (ResponseBuilder.lastResponseId == null)
+            {
+                throw new Exception("Last Response ID not found");
+            }
 
             foreach (var entry in sbUserEntries)
             {
@@ -114,12 +92,12 @@ namespace PackUpNtBack
                     if (builder.valid)
                     {
                         await sbResponses.Insert(builder.response);
-                        var responsesResponse = await sbResponses.Get(); //easily top 5 worst variable names i've made
-                        var responsesResponseResponseId = responsesResponse.Models.Last().ID; //and that's top 2!
-
+                        builder.response.ID = ++ResponseBuilder.lastResponseId;
+                        Console.WriteLine($"{builder.repoName} | {builder.response.RepoId} | {builder.response.ID}");
                         foreach (var package in builder.packages)
                         {
-                            package.ResponseId = responsesResponseResponseId;
+                            package.ResponseId = builder.response.ID;
+                            Console.WriteLine($"{package.Name} | {package.RepoVersion} < {package.CurrentVersion} | Response: {package.ResponseId}");
                             await sbPackages.Insert(package);
                         }
                     }

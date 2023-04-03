@@ -11,6 +11,7 @@ namespace PackUpNtBack
         public PackageUpdateResponse? response;
         public Package[] packages;
         public bool valid = false;
+        public static ulong? lastResponseId;
 
         public ResponseBuilder(long repoID)
         {
@@ -48,46 +49,6 @@ namespace PackUpNtBack
             }
 
             return response;
-        }
-
-        public async Task dotnetTest(string fileName)
-        {
-            var content = File.ReadAllText(fileName);
-            repoName = "TEST-" + fileName;
-            response = new PackageUpdateResponse();
-
-            //create temp directory
-            Directory.CreateDirectory("temp");
-            File.WriteAllText("temp/" + fileName, content);
-
-            //dotnet restore for updates
-            var restorePsi = new ProcessStartInfo();
-            restorePsi.FileName = "dotnet";
-            restorePsi.Arguments = "restore";
-            restorePsi.WorkingDirectory = "temp";
-            var restoreProc = Process.Start(restorePsi);
-            restoreProc.WaitForExit();
-
-            //get the update file
-            var psi = new ProcessStartInfo();
-            psi.FileName = "dotnet";
-            psi.Arguments = $"list {fileName} package --outdated";
-            psi.UseShellExecute = false;
-            psi.WorkingDirectory = "temp";
-            psi.RedirectStandardOutput = true;
-            var proc = Process.Start(psi);
-            var reader = proc.StandardOutput;
-            string result = reader.ReadToEnd();
-            //File.WriteAllText(projectFile.Name + ".txt", result); //for checking output
-
-            //delete temp
-            recursiveDelete(new DirectoryInfo("temp"));
-
-            packages = getAllMatches(result, @"^\s*>\s*(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)$", 1, 3, 4);
-            if (packages.Count() > 0)
-            {
-                valid = true;
-            }
         }
 
         private async Task checkDotnet(Octokit.RepositoryContent projectFile)
