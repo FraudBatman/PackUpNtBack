@@ -2,3 +2,4 @@
 /obj
 /.vscode
 /data
+*.csproj.txt

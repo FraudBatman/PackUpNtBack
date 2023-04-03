@@ -57,7 +57,7 @@ namespace PackUpNtBack
 
 
 
-            //supabase testing
+            // //supabase testing
             var sbUsers = await supabase.Rpc("get_users_names", null);
             GetUsersNamesEntry[] sbUserEntries = JsonConvert.DeserializeObject<GetUsersNamesEntry[]>(sbUsers.Content);
 
@@ -68,66 +68,10 @@ namespace PackUpNtBack
                 Console.WriteLine($"Checking {user.Name} for valid repos...");
                 foreach (var repo in repos)
                 {
-                    // System.Threading.Thread.Sleep(100);
-                    var contents = await github.Repository.Content.GetAllContents(repo.Id);
-                    foreach (var content in contents)
-                    {
-                        if (content.Name == null) continue;
-                        var match = Regex.Match(content.Name, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            Console.WriteLine($"{repo.Name} is a csproj repo");
-                        }
-                        match = Regex.Match(content.Name, @"package.json", RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
-                        }
-                    }
+                    var builder = new ResponseBuilder(repo.Id);
+                    await builder.generateResponse();
                 }
             }
-
-            while (true)
-            {
-                Console.Write("Input a GitHub username to check: ");
-                var un = Console.ReadLine();
-                try
-                {
-                    await github.User.Get(un);
-                    var ustedes = await github.Repository.GetAllForUser(un);
-                    Console.WriteLine($"Checking {un} for valid repos...");
-                    foreach (var repo in ustedes)
-                    {
-                        try
-                        {
-                            var contents = await github.Repository.Content.GetAllContents(repo.Id);
-                            foreach (var content in contents)
-                            {
-                                if (content.Name == null) continue;
-                                var match = Regex.Match(content.Name, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
-                                if (match.Success)
-                                {
-                                    Console.WriteLine($"{repo.Name} is a csproj repo");
-                                }
-                                match = Regex.Match(content.Name, @"package.json", RegexOptions.IgnoreCase);
-                                if (match.Success)
-                                {
-                                    Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
-                                }
-                            }
-                        }
-                        catch (Exception er)
-                        {
-                            Console.WriteLine($"{repo.Id} is empty");
-                        }
-                    }
-                }
-                catch (Exception er)
-                {
-                    Console.WriteLine(er.Message);
-                }
-            }
-
         }
 
         private string GetOauthLoginUrl()
