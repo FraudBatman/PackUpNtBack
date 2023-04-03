@@ -16,15 +16,15 @@ namespace PackUpNtBack
         public async Task MainAsync(string[] args)
         {
             Console.Clear();
-            // /*bypassing a lot of stuff for testing
+            /*bypassing a lot of stuff for testing
 
             var sr = new StreamReader("PackUpNtFront.txt");
             var result = sr.ReadToEnd();
-            var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
+            var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 2, 4);
 
             return;
             //end of bypass
-            // */
+            */
 
             //FILE CREATION
 

@@ -44,7 +44,8 @@ namespace PackUpNtBack
                     Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
                     response.RepoType = "NPM";
                     var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
-                    await checkNPM(projectFile[0]);
+                    var lockFile = await Program.github.Repository.Content.GetAllContents(repo.Id, "package-lock.json");
+                    await checkNPM(projectFile[0], lockFile[0]);
                 }
             }
 
@@ -87,11 +88,22 @@ namespace PackUpNtBack
             }
         }
 
-        private async Task checkNPM(Octokit.RepositoryContent projectFile)
+        private async Task checkNPM(Octokit.RepositoryContent packageFile, Octokit.RepositoryContent lockFile)
         {
             //create temp directory
             Directory.CreateDirectory("temp");
-            File.WriteAllText("temp/" + projectFile.Name, projectFile.Content);
+            File.WriteAllText("temp/" + "package.json", packageFile.Content);
+            File.WriteAllText("temp/" + "package-lock.json", lockFile.Content);
+
+            //install the packages
+            var instPsi = new ProcessStartInfo();
+            instPsi.FileName = "npm";
+            instPsi.Arguments = "install";
+            instPsi.UseShellExecute = false;
+            instPsi.WorkingDirectory = "temp";
+            instPsi.RedirectStandardOutput = true;
+            var instProc = Process.Start(instPsi);
+            instProc.WaitForExit();
 
             //get the update file
             var psi = new ProcessStartInfo();
@@ -107,7 +119,12 @@ namespace PackUpNtBack
             //delete temp
             recursiveDelete(new DirectoryInfo("temp"));
 
-            packages = getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 3, 4);
+            if (repoName == "PackUpNtFront")
+            {
+                Console.WriteLine(result + '\n');
+            }
+
+            packages = getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 2, 4);
             if (packages.Count() > 0)
             {
                 valid = true;
