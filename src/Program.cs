@@ -2,6 +2,8 @@
 using Octokit;
 using PackUpNtBack.Models;
 using System.Text.RegularExpressions;
+using System.Net;
+using System.Net.Mail;
 
 namespace PackUpNtBack
 {
@@ -22,6 +24,8 @@ namespace PackUpNtBack
             // var result = sr.ReadToEnd();
             // var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 2, 4);
 
+            _config = JsonConvert.DeserializeObject<AppConfig>(await File.ReadAllTextAsync("data/config.json"))!;
+
             var rizz = new ResponseBuilder(123456789);
             rizz.repoName = "test rpo";
             var pack1 = new PackUpNtBack.Models.Package();
@@ -36,11 +40,26 @@ namespace PackUpNtBack
             rizz.packages[0] = pack1;
             rizz.packages[1] = pack2;
             var eb = new EmailBuilder(rizz);
-            Console.WriteLine(eb.makeEmail());
+            var body = eb.makeEmail();
+
+            using SmtpClient smtpClient = new SmtpClient(_config.EmailServer, _config.EmailPort)
+            {
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(_config.EmailAccount, _config.EmailPassword)
+            };
+
+            var message = new MailMessage(_config.EmailAccount, "to@email.com");
+            message.Subject = "test before i push";
+            message.Body = body;
+            message.IsBodyHtml = true;
+
+            smtpClient.Send(message);
 
             return;
             //end of bypass
-            
+
 
             //FILE CREATION
 

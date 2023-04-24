@@ -9,7 +9,11 @@ namespace PackUpNtBack
         public string GithubSecret = "Put your Github";
         public string SupabaseUrl = "";
         public string SupabaseKey = "";
-
+        public string EmailAccount = "";
+        public string EmailFrom = "";
+        public string EmailPassword = "";
+        public string EmailServer = "";
+        public int EmailPort = 0;
 
         public void SaveAsJSON(StreamWriter sw)
         {
