@@ -24,40 +24,40 @@ namespace PackUpNtBack
             // var result = sr.ReadToEnd();
             // var packageStrings = ResponseBuilder.getAllMatches(result, @"^(\S+)\s+(\S+)\s+(\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+)\s+(\S+)\s+(\S+)$", 1, 2, 4);
 
-            _config = JsonConvert.DeserializeObject<AppConfig>(await File.ReadAllTextAsync("data/config.json"))!;
+            // _config = JsonConvert.DeserializeObject<AppConfig>(await File.ReadAllTextAsync("data/config.json"))!;
 
-            var rizz = new ResponseBuilder(123456789);
-            rizz.repoName = "test rpo";
-            var pack1 = new PackUpNtBack.Models.Package();
-            pack1.Name = "test pack 1";
-            pack1.RepoVersion = "1.0.0";
-            pack1.CurrentVersion = "1.2.0";
-            var pack2 = new PackUpNtBack.Models.Package();
-            pack2.Name = "test pack 2";
-            pack2.RepoVersion = "1.2.2";
-            pack2.CurrentVersion = "1.3.0";
-            rizz.packages = new PackUpNtBack.Models.Package[2];
-            rizz.packages[0] = pack1;
-            rizz.packages[1] = pack2;
-            var eb = new EmailBuilder(rizz);
-            var body = eb.makeEmail();
+            // var rizz = new ResponseBuilder(123456789);
+            // rizz.repoName = "test rpo";
+            // var pack1 = new PackUpNtBack.Models.Package();
+            // pack1.Name = "test pack 1";
+            // pack1.RepoVersion = "1.0.0";
+            // pack1.CurrentVersion = "1.2.0";
+            // var pack2 = new PackUpNtBack.Models.Package();
+            // pack2.Name = "test pack 2";
+            // pack2.RepoVersion = "1.2.2";
+            // pack2.CurrentVersion = "1.3.0";
+            // rizz.packages = new PackUpNtBack.Models.Package[2];
+            // rizz.packages[0] = pack1;
+            // rizz.packages[1] = pack2;
+            // var eb = new EmailBuilder(rizz);
+            // var body = eb.makeEmail();
 
-            using SmtpClient smtpClient = new SmtpClient(_config.EmailServer, _config.EmailPort)
-            {
-                EnableSsl = true,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(_config.EmailAccount, _config.EmailPassword)
-            };
+            // using SmtpClient smtpClient = new SmtpClient(_config.EmailServer, _config.EmailPort)
+            // {
+            //     EnableSsl = true,
+            //     DeliveryMethod = SmtpDeliveryMethod.Network,
+            //     UseDefaultCredentials = false,
+            //     Credentials = new NetworkCredential(_config.EmailAccount, _config.EmailPassword)
+            // };
 
-            var message = new MailMessage(_config.EmailAccount, "to@email.com");
-            message.Subject = "test before i push";
-            message.Body = body;
-            message.IsBodyHtml = true;
+            // var message = new MailMessage(_config.EmailAccount, "to@email.com");
+            // message.Subject = "test before i push";
+            // message.Body = body;
+            // message.IsBodyHtml = true;
 
-            smtpClient.Send(message);
+            // smtpClient.Send(message);
 
-            return;
+            // return;
             //end of bypass
 
 
@@ -135,6 +135,24 @@ namespace PackUpNtBack
                             Console.WriteLine($"{package.Name} | {package.RepoVersion} < {package.CurrentVersion} | Response: {package.ResponseId}");
                             await sbPackages.Insert(package);
                         }
+
+                        var emailBuilder = new EmailBuilder(builder);
+                        var body = emailBuilder.makeEmail();
+
+                        using SmtpClient smtpClient = new SmtpClient(_config.EmailServer, _config.EmailPort)
+                        {
+                            EnableSsl = true,
+                            DeliveryMethod = SmtpDeliveryMethod.Network,
+                            UseDefaultCredentials = false,
+                            Credentials = new NetworkCredential(_config.EmailAccount, _config.EmailPassword)
+                        };
+
+                        var message = new MailMessage(_config.EmailAccount, entry.email);
+                        message.Subject = $"Updates found for {builder.repoName}";
+                        message.Body = body;
+                        message.IsBodyHtml = true;
+
+                        smtpClient.Send(message);
                     }
                 }
             }

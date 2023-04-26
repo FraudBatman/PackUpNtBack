@@ -20,36 +20,46 @@ namespace PackUpNtBack
 
         public async Task<PackageUpdateResponse> generateResponse()
         {
-            response = new PackageUpdateResponse();
-            response.RepoId = repoId;
-
-            var repo = await Program.github.Repository.Get(Int64.Parse(repoId.ToString()));
-            repoName = repo.Name;
-
-            var contents = await Program.github.Repository.Content.GetAllContents(repo.Id);
-            foreach (var content in contents)
+            try
             {
-                if (content.Name == null) continue;
-                var match = Regex.Match(content.Name, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    Console.WriteLine($"{repo.Name} is a csproj repo");
-                    response.RepoType = ".NET";
-                    var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
-                    await checkDotnet(projectFile[0]);
-                }
-                match = Regex.Match(content.Name, @"package.json", RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
-                    response.RepoType = "NPM";
-                    var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
-                    var lockFile = await Program.github.Repository.Content.GetAllContents(repo.Id, "package-lock.json");
-                    await checkNPM(projectFile[0], lockFile[0]);
-                }
-            }
+                response = new PackageUpdateResponse();
+                response.RepoId = repoId;
 
-            return response;
+                var repo = await Program.github.Repository.Get(Int64.Parse(repoId.ToString()));
+                repoName = repo.Name;
+
+                var contents = await Program.github.Repository.Content.GetAllContents(repo.Id);
+                foreach (var content in contents)
+                {
+                    if (content.Name == null) continue;
+                    var match = Regex.Match(content.Name, @"[a-z0-9]*.csproj", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        Console.WriteLine($"{repo.Name} is a csproj repo");
+                        response.RepoType = ".NET";
+                        var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
+                        await checkDotnet(projectFile[0]);
+                    }
+                    match = Regex.Match(content.Name, @"package.json", RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        Console.WriteLine($"{repo.Name} contains a package.json. Likely an NPM project");
+                        response.RepoType = "NPM";
+                        var projectFile = await Program.github.Repository.Content.GetAllContents(repo.Id, content.Name);
+                        var lockFile = await Program.github.Repository.Content.GetAllContents(repo.Id, "package-lock.json");
+                        await checkNPM(projectFile[0], lockFile[0]);
+                    }
+                }
+
+                return response;
+            }
+            catch (Exception er)
+            {
+                Console.WriteLine(er.Message);
+                var dummyResponse = new PackageUpdateResponse();
+                valid = false;
+                return dummyResponse;
+            }
         }
 
         private async Task checkDotnet(Octokit.RepositoryContent projectFile)
