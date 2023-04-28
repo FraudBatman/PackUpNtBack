@@ -17,5 +17,8 @@ namespace PackUpNtBack.Models
 
         [Column("notification_day")]
         string NotificationDay { get; set; }
+
+        [Column("enabled")]
+        bool Enabled { get; set; }
     }
 }
